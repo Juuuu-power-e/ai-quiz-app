@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4지선다형 문제 풀이</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+    .question-box { margin-bottom: 20px; }
+    .option { margin: 5px 0; }
+    .result { margin-top: 20px; font-weight: bold; }
+    .navigation { margin-top: 20px; display: flex; justify-content: space-between; }
+    .summary { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h2 id="question-number"></h2>
+  <div class="question-box">
+    <p id="question-text"></p>
+    <div id="options"></div>
+  </div>
+  <button onclick="submitAnswer()">제출</button>
+  <div class="result" id="result"></div>
+  <div class="navigation">
+    <button onclick="prevQuestion()">이전</button>
+    <button onclick="nextQuestion()">다음</button>
+  </div>
+  <div class="summary" id="summary"></div>
+
+  <script>
+    let questions = [];
+    let current = 0;
+    let score = 0;
+    let incorrect = [];
+    let userAnswers = [];
+
+    async function loadQuestions() {
+      const res = await fetch('questions.json');
+      questions = await res.json();
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = questions[current];
+      document.getElementById('question-number').innerText = `문제 ${current + 1} / ${questions.length}`;
+      document.getElementById('question-text').innerText = q.question;
+      document.getElementById('result').innerText = '';
+
+      const options = q.options.map((opt, i) => `
+        <label class="option">
+          <input type="radio" name="answer" value="${i}" /> ${opt}
+        </label>
+      `).join('');
+      document.getElementById('options').innerHTML = options;
+    }
+
+    function submitAnswer() {
+      const selected = document.querySelector('input[name="answer"]:checked');
+      if (!selected) return alert('답안을 선택해주세요.');
+
+      const answer = parseInt(selected.value);
+      const q = questions[current];
+
+      if (userAnswers[current] === undefined) {
+        userAnswers[current] = answer;
+        if (answer === q.answer) {
+          score++;
+        } else {
+          incorrect.push({ index: current, question: q.question, your: q.options[answer], correct: q.options[q.answer], explanation: q.explanation });
+        }
+      }
+
+      document.getElementById('result').innerText = answer === q.answer ? '✅ 정답입니다!' : `❌ 오답입니다. 정답: ${q.options[q.answer]}\n해설: ${q.explanation}`;
+    }
+
+    function nextQuestion() {
+      if (current < questions.length - 1) {
+        current++;
+        showQuestion();
+      } else {
+        showSummary();
+      }
+    }
+
+    function prevQuestion() {
+      if (current > 0) {
+        current--;
+        showQuestion();
+      }
+    }
+
+    function showSummary() {
+      let html = `<h3>🎉 퀴즈 완료!</h3><p>총 ${questions.length}문제 중 ${score}개 맞춤</p>`;
+      if (incorrect.length > 0) {
+        html += '<h4>틀린 문제 모아보기</h4><ul>';
+        incorrect.forEach(item => {
+          html += `<li><strong>${item.question}</strong><br/>너의 답: ${item.your}<br/>정답: ${item.correct}<br/>해설: ${item.explanation}</li><br/>`;
+        });
+        html += '</ul>';
+      } else {
+        html += '<p>모든 문제를 맞췄습니다! 🎯</p>';
+      }
+      document.getElementById('summary').innerHTML = html;
+    }
+
+    loadQuestions();
+  </script>
+</body>
+</html>
